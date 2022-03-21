@@ -5,57 +5,57 @@
     <color rgba="0.203125 0.23828125 0.28515625 1.0"/>
   </material>
 
-    <link name="base_link">
-        <visual>
-          <geometry>           
+  <link name="base_link">
+    <visual>
+      <geometry>           
+        <mesh filename="package://carsim_discription/meshes/car_019.dae"/> 
+      </geometry>
+      <origin rpy="0 0 -1.5708" xyz="-0.05 0 0.56"/>
+      <material name="blue"/>
+    </visual>
 
-            <mesh filename="package://carsim_discription/meshes/car_019.dae"/> 
-          </geometry>
-          
-        <origin rpy="0 0 -1.5708" xyz="-0.05 0 0.56"/>
-         <material name="blue"/>
-        </visual>    
-        <collision>
-          <geometry>
-          <box size="1.4 3.8 0.3"/>
-          </geometry>
-        <origin rpy="0 0 -1.5708" xyz="0 0 0.45"/>
-        </collision>
-        
-        <inertial>
-              <mass value="1"/>
-              <inertia ixx="1" ixy="0.0" ixz="0.0" iyy="1" iyz="0.0" izz="1"/>
-              <origin rpy="0 0 -1.5708" xyz="-0.05 0 0.56"/>
-    </inertial>
-    </link>    
+    <collision>
+      <geometry>
+        <box size="1.4 3.8 0.3"/>
+      </geometry>
+      <origin rpy="0 0 -1.5708" xyz="0 0 0.45"/>
+    </collision>
     
-    <link name="left_wheel">
-        <collision>
-          <geometry>
-         <cylinder length="0.1" radius="0.3"/>
-          </geometry>
-        <surface>
-            <friction>
-              <ode>
-                <mu>100000</mu>
-                <mu2>100000</mu2>
-              </ode>
-            </friction>
-        </surface>
-          <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
-        </collision>
-        <visual>
-          <geometry>
-         <cylinder length="0.1" radius="0.3"/>
-          </geometry>
-          <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
-        </visual>
-            <inertial>
+    <inertial>
       <mass value="1"/>
-      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
-      <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+      <inertia ixx="1" ixy="0.0" ixz="0.0" iyy="1" iyz="0.0" izz="1"/>
+      <origin rpy="0 0 -1.5708" xyz="-0.05 0 0.56"/>
     </inertial>
-    </link>
+  </link>    
+    
+  <link name="left_wheel">
+    <collision>
+      <geometry>
+        <cylinder length="0.1" radius="0.3"/>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>100000</mu>
+            <mu2>100000</mu2>
+          </ode>
+        </friction>
+      </surface>
+      <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+    </collision>
+    
+    <visual>
+      <geometry>
+      <cylinder length="0.1" radius="0.3"/>
+      </geometry>
+      <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+    </visual>
+        <inertial>
+  <mass value="1"/>
+  <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+  <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+</inertial>
+  </link>
     
     <link name="right_wheel">
 
@@ -215,7 +215,7 @@ TRANSMISSION
   
   <gazebo>
   <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-    <robotNamespace>/carsim</robotNamespace>
+    <robotNamespace>/carsimTTC</robotNamespace>
   </plugin>
 </gazebo>
 
@@ -231,8 +231,8 @@ TRANSMISSION
     <wheelSeparation>1.4</wheelSeparation>
     <wheelDiameter>0.6</wheelDiameter>
     <torque>20</torque>
-    <commandTopic>carsim/cmd_vel</commandTopic>
-    <odometryTopic>carsim/odom_diffdrive</odometryTopic>
+    <commandTopic>cmd_vel</commandTopic>
+    <odometryTopic>odom_diffdrive</odometryTopic>
     <odometryFrame>odom</odometryFrame>
     <robotBaseFrame>base_link</robotBaseFrame>
   </plugin>
@@ -296,7 +296,7 @@ TRANSMISSION
       <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
         <alwaysOn>true</alwaysOn>
         <updateRate>0.0</updateRate>
-        <cameraName>carsim/camera1</cameraName>
+        <cameraName>camera1</cameraName>
         <imageTopicName>image_raw1</imageTopicName>
         <cameraInfoTopicName>camera_info1</cameraInfoTopicName>
         <frameName>camera_link1</frameName>
@@ -362,7 +362,7 @@ TRANSMISSION
       <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
         <alwaysOn>true</alwaysOn>
         <updateRate>0.0</updateRate>
-        <cameraName>carsim/camera2</cameraName>
+        <cameraName>camera2</cameraName>
         <imageTopicName>image_raw</imageTopicName>
         <cameraInfoTopicName>camera_info2</cameraInfoTopicName>
         <frameName>camera_link2</frameName>
@@ -424,7 +424,7 @@ TRANSMISSION
         </range>
       </ray>
       <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
-        <topicName>/carsim/laser/scan</topicName>
+        <topicName>laser/scan</topicName>
         <frameName>hokuyo_link</frameName>
       </plugin>
     </sensor>

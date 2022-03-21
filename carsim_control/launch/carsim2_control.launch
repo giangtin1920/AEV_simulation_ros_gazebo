@@ -1,0 +1,12 @@
+<launch>
+
+  <arg name="robot_name"/>
+  <!-- Load joint controller configurations from YAML file to parameter server -->
+  <rosparam file="$(find carsim_control)/config/carsim2_control.yaml" command="load"/>
+
+  <!-- load the controllers -->
+  <node name="controller_spawner"
+    pkg="controller_manager" type="spawner" respawn="false" output="screen" ns="$(arg robot_name)"
+    args="joint_state_controller rightWheel_effort_controller leftWheel_effort_controller" />
+
+</launch>

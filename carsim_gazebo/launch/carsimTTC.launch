@@ -1,0 +1,47 @@
+<launch>
+
+  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find carsim_gazebo)/worlds/empty.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+  
+  <arg name="gpu" default="false"/>
+  
+  <!-- BEGIN ROBOT 1-->
+  <arg name="model1" default="$(find carsim_discription)/urdf/model1.urdf"/>
+  <param name="robot_description" command="$(find xacro)/xacro.py --inorder $(arg model1) gpu:=$(arg gpu)" />
+  <group ns="carsim1">
+    <param name="tf_prefix" value="carsim1_tf" />
+    <include file="$(find carsim_gazebo)/launch/one_robot.launch" >
+      <arg name="init_pose" value="-x -40 -y 0 -z 0 -Y 0"/>
+      <arg name="robot_name" value="carsimTTC" />
+    </include>
+  </group>
+
+  <include file="$(find carsim_control)/launch/carsim1_control.launch" >
+    <arg name="robot_name" value="carsimTTC" />
+  </include>
+  
+
+
+  <!-- BEGIN ROBOT 2 
+  <arg name="model2" default="$(find carsim_discription)/urdf/model2.urdf"/>
+  <param name="robot_description" command="$(find xacro)/xacro.py -inorder $(arg model2) gpu:=$(arg gpu)" />
+  <group ns="carsim2">
+    <param name="tf_prefix" value="carsim2_tf" />
+    <include file="$(find carsim_gazebo)/launch/one_robot.launch" >
+      <arg name="init_pose" value="-x 10 -y -10 -z 0 -Y 1.570796" />
+      <arg name="robot_name"  value="carsimObj" />
+    </include>
+  </group> 
+
+  <include file="$(find carsim_control)/launch/carsim2_control.launch" >
+    <arg name="robot_name" value="carsimObj" />
+  </include>
+  -->
+</launch>

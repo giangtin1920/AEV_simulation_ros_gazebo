@@ -43,8 +43,8 @@ moveBindings = {
 speedBindings={
 		'q':(1.1,1.1),
 		'z':(.9,.9),
-		'w':(1.2,1), # 'w':(1.1,1)
-		'x':(.8,1), # 'x':(.9,1) 
+		'w':(1.1,1), # 'w':(1.1,1)
+		'x':(.9,1), # 'x':(.9,1) 
 		'e':(1,1.1),
 		'c':(1,.9),
 	      }
@@ -60,27 +60,26 @@ def getKey():
 def vels(speed,turn):
 	return "currently:\tspeed %s\tturn %s " % (speed,turn)
 
-def callback_laser(msg):
+def laserTTCCallback(msg):
 	# 100 sample into 3 regions
 	sample = 100
 	samRegions = sample/10
 	minRange = 15
-
+	global regions
 	regions = {
 		'right':  min(min(msg.ranges[0:samRegions*2]), minRange),
 		'front':  min(min(msg.ranges[samRegions*2:samRegions*8]), minRange),
 		'left':   min(min(msg.ranges[samRegions*8:samRegions*10-1]), minRange),
 	}
-	
-	take_action(regions)
 
-def take_action(regions):
+def autoDrive(*args):
 	threshold_dist = 10
-	ttc_min = 3
+	ttc_min = 5
 		
 	if regions['front'] > threshold_dist and regions['left'] > threshold_dist and regions['right'] > threshold_dist:
 		state_description = 'case 1 - no obstacle'
-		ttc = 20
+		ttc = 15
+		dis = 15
 		global speed; speed = rospy.get_param("~speed", 2.0)
 		global turn; turn = rospy.get_param("~turn", 30)
 		global key; key = "i"
@@ -89,7 +88,7 @@ def take_action(regions):
 		state_description = 'case 7 - front and left and right'
 		dis = min(regions['front'], regions['left'], regions['right'])
 		ttc = dis/abs(vel_carsim)
-		if ttc < 0.5:
+		if ttc < 2:
 			key = "x" 
 
 	elif regions['front'] < threshold_dist and regions['left'] > threshold_dist and regions['right'] > threshold_dist:
@@ -127,10 +126,12 @@ def take_action(regions):
 		key = "k"
 	else:
 		state_description = 'unknown case'
-		print(regions)
 
 	print(state_description)
-	print(ttc)
+	print("dis = ", dis)
+	print("vel = ", vel_carsim)
+	print("ttc = ", ttc)
+	print(key)
 	
 		
 	settings = termios.tcgetattr(sys.stdin)
@@ -167,11 +168,13 @@ def take_action(regions):
 
 		if abs(speed) > 10:
 			speed = 10
+		if abs(turn) > 80:
+			turn = 80
 
 		twist = Twist()
 		twist.linear.x = x*speed; twist.linear.y = y*speed; twist.linear.z = z*speed
 		twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = th*turn
-		pub.publish(twist)
+		pubTTC.publish(twist)
 
 
 	except Exception as e:
@@ -185,10 +188,10 @@ def take_action(regions):
 
 	# 	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
 
-def jointStateCallback(msg):
+def jointStateTTCCallback(msg):
+	# print(msg.velocity)
 
 	for idx, name in enumerate(msg.name):
-		joinName = ["right_wheel_hinge", "left_wheel_hinge"]
 		if name == "right_wheel_hinge":
 			right_wheel_hinge = msg.velocity[idx]
 		if name == "left_wheel_hinge":
@@ -200,14 +203,14 @@ def jointStateCallback(msg):
 	if vel_carsim == 0:
 		vel_carsim = 0.001
 
-			
-
 def main():
-	global pub
+	global pubTTC
 	rospy.init_node('reading_laser')
-	pub = rospy.Publisher('carsim/cmd_vel', Twist, queue_size = 1)
-	sub = rospy.Subscriber('/carsim/laser/scan', LaserScan, callback_laser)
-	odom_sub_ = rospy.Subscriber('/carsim/joint_states', JointState, jointStateCallback,)
+
+	pubTTC = rospy.Publisher('/carsim1/cmd_vel', Twist, queue_size = 1)
+	subTTC = rospy.Subscriber('/carsim1/laser/scan', LaserScan, laserTTCCallback)
+	velTTC = rospy.Subscriber('carsimTTC/joint_states', JointState, jointStateTTCCallback)
+	ctr = rospy.Timer(rospy.Duration(0.1), autoDrive)
 	rospy.spin()
 
 if __name__ == '__main__':
