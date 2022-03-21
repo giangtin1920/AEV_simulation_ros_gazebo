@@ -53,3 +53,9 @@ https://github.com/saharshleo/obstacleAvoidanceRobot
 
 https://www.theconstructsim.com/ros-projects-exploring-ros-using-2-wheeled-robot-part-1/
 
+http://gazebosim.org/tutorials/?tut=ros_urdf
+
+http://gazebosim.org/tutorials/?tut=build_robot
+
+https://www.youtube.com/watch?v=mFTkN5v4Jzc
+
