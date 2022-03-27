@@ -36,7 +36,7 @@ int main(int argc, char **argv)
         srv.request.end   = ros::Time::now();
         if (client.call(srv))
         {
-            printf("Got cloud with %u points\n", srv.response.cloud.points.size());
+//            printf("Got cloud with %u points\n", srv.response.cloud.points.size());
             if(srv.response.cloud.points.size()>0)
             {
                 point_cloud_publisher_.publish(srv.response.cloud);
