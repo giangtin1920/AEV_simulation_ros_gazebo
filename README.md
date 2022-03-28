@@ -1,6 +1,8 @@
 # AEV_simulation_ros_gazebo
 
-Self Driving Car simulation in a world using ROS and Gazebo.
+Self Driving Car simulation in a world using ROS and Gazebo. Using TTC algorithm combined with Radar sensor (laserScan in ROS) to control car automatically
+
+We have 2 cars, one will drive automatically and the other will be controlled by keyboard
 
 ## Building the package
 
@@ -33,6 +35,10 @@ Self Driving Car simulation in a world using ROS and Gazebo.
 
 ## Running Simulation
 
+#### Run `runSimulation.sh` for all
+
+    sh ~/catkin_ws/src/AEV_simulation_ros_gazebo/carsim_gazebo/launch/runSimulation.sh
+
 #### Rviz:
 
     roslaunch carsim_gazebo rviz.launch
@@ -44,6 +50,10 @@ Self Driving Car simulation in a world using ROS and Gazebo.
 #### Keyboard Teleop:
 
     rosrun carsim_gazebo teleop.py
+
+## Usage
+
+
 
 ## Acknowledgments and References
 
