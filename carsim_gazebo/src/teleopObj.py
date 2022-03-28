@@ -63,24 +63,23 @@ def vels(speed,turn):
 	return "currently:\tspeed %s\tturn %s " % (speed,turn)
 
 def controlCarsim2(msg):
-	
+	global is_run
+	global speed
+	global turn
+
 	x = 0
 	y = 0
 	z = 0
 	th = 0
 	status = 0
-	global is_run
+
+	
 	if is_run:
-		is_run = False
-		global speed
-		global turn
+		is_run = False	
 		speed = 2
 		turn = 40
 	
 	try:
-		# print(msg)
-		# print(vels(speed,turn))
-		# while(1):
 		keyObj = getKey()
 		
 		if keyObj in moveBindings.keys():
@@ -91,18 +90,12 @@ def controlCarsim2(msg):
 		elif keyObj in speedBindings.keys():
 			speed = speed * speedBindings[keyObj][0]
 			turn = turn * speedBindings[keyObj][1]
-
 			print(vels(speed,turn))
-			if (status == 14):
-				print(msg)
-			status = (status + 1) % 15
 		else:
 			x = 0
 			y = 0
 			z = 0
 			th = 0
-
-		# if (key == '\x03'):
 
 		if abs(speed) > 10:
 			speed = 10
@@ -119,8 +112,8 @@ def controlCarsim2(msg):
 
 
 def jointStateObjCallback(msg):
-	# print(msg.velocity)
-	
+	global velObj
+
 	for idx, name in enumerate(msg.name):
 		if name == "right_wheel_hinge":
 			right_wheel_hinge = msg.velocity[idx]
@@ -128,7 +121,6 @@ def jointStateObjCallback(msg):
 			left_wheel_hinge = msg.velocity[idx]
 
 	# print(right_wheel_hinge*0.3, left_wheel_hinge*0.3)
-	global velObj
 	velObj = 0.3*(right_wheel_hinge+left_wheel_hinge)/2
 	if velObj == 0:
 		velObj = 0.001
@@ -136,12 +128,13 @@ def jointStateObjCallback(msg):
 	print("\r\n", velObj, "\r\n")
 
 
-
 def main():
 	global pubObj
 	
 	rospy.init_node('control_carsim2')
+
 	pubObj = rospy.Publisher('/carsim2/cmd_vel', Twist, queue_size = 1)
+	
 	subObj = rospy.Subscriber('/carsim2/laser/scan', LaserScan, controlCarsim2)
 	velObj = rospy.Subscriber('/carsimObj/joint_states', JointState, jointStateObjCallback)
 	# ctrObj = rospy.Timer(rospy.Duration(0.1), manDrive)

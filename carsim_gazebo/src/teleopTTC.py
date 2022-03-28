@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from array import array
+from itertools import count
 
 import rospy
 import math 
@@ -49,7 +50,7 @@ speedBindings={
 		'q':(1.1,1.1),
 		'z':(.9,.9),
 		'w':(1.1,1), # 'w':(1.1,1)
-		'x':(.9,1), # 'x':(.9,1) 
+		'x':(.8,1), # 'x':(.9,1) 
 		'e':(1,1.1),
 		'c':(1,.9),
 	      }
@@ -71,6 +72,7 @@ def laserTTCCallback(msg):
 	global posX
 	global posY
 	global ttc
+	global regions
 	
 	minRange = 15
 	tmpRange = 0
@@ -81,10 +83,8 @@ def laserTTCCallback(msg):
 	posX = []
 	posY = []
 	ttc = []
-	# disObj.clear()
-	# posObj.clear()
-	# 100 sample into 3 regions
 	
+	# Tracked Object from laserScan
 	for idx, ranges in enumerate(msg.ranges):
 		if ranges > minRange:
 			obj = 0
@@ -109,67 +109,87 @@ def laserTTCCallback(msg):
 			tmpIdx = 0
 			tmpRange = 0
 			cnt = 0
-	for i, pos in enumerate(posObj):
-		posObj[i] = msg.angle_max + msg.angle_increment*pos
 
+	# print(posObj)
+	# print(msg.angle_max)
+	# print(msg.angle_increment)
+
+	#  calculate angle alpha as position of objects
+	for i, pos in enumerate(posObj):
+		posObj[i] = (math.pi/2 - msg.angle_max) +  msg.angle_increment*pos
+
+	#  calculate the position, TTC of each object
 	for i, dis in enumerate(disObj):
 		posX.append(math.cos(posObj[i]) * dis )
 		posY.append(math.sin(posObj[i]) * dis )
-		ttc.append(dis/vel_carsim)
+		ttc.append(dis/abs(vel_carsim))
+		if ttc[i] > 99:
+			ttc[i] = 99
 
-	
-
-	# print(msg.angle_min)
-	# print(msg.angle_max) // pi/2
-	# print(msg.angle_increment)
-	# print(msg.time_increment)
-
+	#  split the laserScan into 10 zones
 	angleRegions = msg.angle_max/5
-
-
-	global regions
 	regions = {
-		'right':  msg.angle_max + angleRegions * 3,
+		'right':  (math.pi/2 - msg.angle_max) + angleRegions * 3,
 		'front':  angleRegions * 4,
-		'left':   msg.angle_max + angleRegions * 7,
+		'left':   (math.pi/2 - msg.angle_max) + angleRegions * 7,
 	}
+	
 
 def autoDrive(*args):
-
-	threshold_dist = 10
-	ttc_min = 5
 	global speed
 	global turn
-	global state_state_key
-	speed = rospy.get_param("~speed", 2.0)
-	turn = rospy.get_param("~turn", 30)
+	global cnt_msg
+
+	ttc_min = 5
+	dis_min = 8
+	ttcRadar = ttcRadar_msg()
 	state_key = []
 	state_description = []
-	
+	cnt_msg += 1
+
+	#  get state_description and state_key for controller
 	if len(posObj) == 0:
+		ttcRadar.isObject = False
 		state_description.append('no obstacle')
-		state_key.append("i")
+		speed = rospy.get_param("~speed", 2.0)
+		turn = rospy.get_param("~turn", 30)
+		state_key.append("i")		
 
 	else:
-
+		ttcRadar.isObject = True
 		for i, pos in enumerate(posObj):
+
+			#  duty is the period of deceleration between 2 consecutive times. it changes depending on the object distance.
+			duty = round(disObj[i]/1.5)
+			if duty < 1:
+				duty = 1
 
 			if pos > regions['right'] and pos < regions['left']:
 				state_description.append('front')
-				state_key.append("x") if ttc[i] < ttc_min else state_key.append("i")
+				if disObj[i] < dis_min:
+					state_key.append("x") if (cnt_msg == (cnt_msg//duty)*duty) else state_key.append("i")
+				else:
+					state_key.append("i")
 
-			elif pos <= regions['right'] :
+			elif pos <= regions['right']:
 				state_description.append('right')
-				state_key.append("u") if ttc[i] < ttc_min else state_key.append("u")
+				if ttc[i] < ttc_min:
+					state_key.append("u")
+					speed = 2.0
+				else:
+					state_key.append("i")
 
 			elif pos >= regions['left']:
 				state_description.append('left')
-				state_key.append("o") if ttc[i] < ttc_min else state_key.append("o")
+				if ttc[i] < ttc_min:
+					state_key.append("o") 
+					speed = 2.0
+				else:
+					state_key.append("i")
 
 			else:
-				state_description.append('unknown')
+				state_description.append('unknown state_description')
 
-	
 	state_description  = list(set(state_description))
 	state_description.sort()
 	print(state_description)
@@ -177,7 +197,6 @@ def autoDrive(*args):
 	state_key = list(set(state_key))
 	state_key.sort()
 	# print(state_key)
-
 
 	if state_key == ['i']:
 		key = "i"
@@ -203,27 +222,22 @@ def autoDrive(*args):
 	elif state_key == ['u', 'x']:
 		key = "u"	
 	else:
-		key = "k"
-		print("none case")
+		# key = "k"
+		print("none key")
 
 	# print("dis = ", dis)
 	# print("vel = ", vel_carsim)
 	# print("ttc = ", ttc)
 	# print(key)
-	
 		
 	settings = termios.tcgetattr(sys.stdin)
 	x = 0
 	y = 0
 	z = 0
 	th = 0
-	status = 0
 
+	#  controller telep
 	try:
-		# print(msg)
-		# print(vels(speed,turn))
-		# while(1):
-		# key = getKey()
 		if key in moveBindings.keys():
 			x = moveBindings[key][0]
 			y = moveBindings[key][1]
@@ -232,29 +246,25 @@ def autoDrive(*args):
 		elif key in speedBindings.keys():
 			speed = speed * speedBindings[key][0]
 			turn = turn * speedBindings[key][1]
-
 			print(vels(speed,turn))
-			if (status == 14):
-				print(msg)
-			status = (status + 1) % 15
 		else:
 			x = 0
 			y = 0
 			z = 0
 			th = 0
-		# if (key == '\x03'):
 
 		if abs(speed) > 10:
 			speed = 10
 		if abs(turn) > 80:
 			turn = 80
 
+		#  public msg to topic '/carsim1/cmd_vel'
 		twist = Twist()
 		twist.linear.x = x*speed; twist.linear.y = y*speed; twist.linear.z = z*speed
 		twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = th*turn
 		pubTTC.publish(twist)
 
-		ttcRadar = ttcRadar_msg()
+		#  public msg to topic 'ttcRadar_Data'
 		ttcRadar.numObj = len(posObj)
 		ttcRadar.IdObj
 		ttcRadar.isApproach = [True]
@@ -262,28 +272,18 @@ def autoDrive(*args):
 		ttcRadar.posX = posX
 		ttcRadar.posY = posY
 		ttcRadar.dis = disObj
-		ttcRadar.vel.append(vel_carsim)
+		ttcRadar.vel= [vel_carsim, vel_carsim]
 		ttcRadar.ttc = ttc
-
-		ttcRadar.msg_counter = 10
-		ttcRadar.isObject = True
+		ttcRadar.msg_counter = cnt_msg
 
 		pubRadar.publish(ttcRadar)
-
 
 	except Exception as e:
 		print(e)
 
-	# finally:
-	# 	twist = Twist()
-	# 	twist.linear.x = 0; twist.linear.y = 0; twist.linear.z = 0
-	# 	twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = 0
-	# 	pub.publish(twist)
-
-	# 	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
 
 def jointStateTTCCallback(msg):
-	# print(msg.velocity)
+	global vel_carsim
 
 	for idx, name in enumerate(msg.name):
 		if name == "right_wheel_hinge":
@@ -292,14 +292,17 @@ def jointStateTTCCallback(msg):
 			left_wheel_hinge = msg.velocity[idx]
 
 	# print(right_wheel_hinge*0.3, left_wheel_hinge*0.3)
-	global vel_carsim 
 	vel_carsim = 0.3*(right_wheel_hinge+left_wheel_hinge)/2
 	if vel_carsim == 0:
 		vel_carsim = 0.001
 
+
 def main():
 	global pubTTC
 	global pubRadar
+	global cnt_msg
+	cnt_msg = 0
+
 	rospy.init_node('reading_laser')
 
 	pubTTC = rospy.Publisher('/carsim1/cmd_vel', Twist, queue_size = 1)
@@ -307,7 +310,9 @@ def main():
 
 	subTTC = rospy.Subscriber('/carsim1/laser/scan', LaserScan, laserTTCCallback)
 	velTTC = rospy.Subscriber('carsimTTC/joint_states', JointState, jointStateTTCCallback)
+	
 	ctr = rospy.Timer(rospy.Duration(0.1), autoDrive)
+
 	rospy.spin()
 
 if __name__ == '__main__':
@@ -373,3 +378,7 @@ if __name__ == '__main__':
 	# # print("vel = ", vel_carsim)
 	# # print("ttc = ", ttc)
 	# # print(key)
+
+
+
+
