@@ -306,7 +306,7 @@ def main():
 	rospy.init_node('reading_laser')
 
 	pubTTC = rospy.Publisher('/carsim1/cmd_vel', Twist, queue_size = 1)
-	pubRadar = rospy.Publisher('ttcRadar_Data', ttcRadar_msg, queue_size = 1)
+        pubRadar = rospy.Publisher('Radar_Data', ttcRadar_msg, queue_size = 1)
 
 	subTTC = rospy.Subscriber('/carsim1/laser/scan', LaserScan, laserTTCCallback)
 	velTTC = rospy.Subscriber('carsimTTC/joint_states', JointState, jointStateTTCCallback)
