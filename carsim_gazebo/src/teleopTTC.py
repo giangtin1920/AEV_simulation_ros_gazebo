@@ -31,7 +31,7 @@ moveBindings = {
 		'j':(0,0,0,1),
 		'l':(0,0,0,-1),
 		'u':(1,0,0,1),
-		',':(-1,0,0,0),
+		',':(-1,0,0,0),	
 		'.':(-1,0,0,1),
 		'm':(-1,0,0,-1),
 		'O':(1,-1,0,0),
@@ -74,7 +74,7 @@ def laserTTCCallback(msg):
 	global ttc
 	global regions
 	
-	minRange = 15
+	minRange = 40
 	tmpRange = 0
 	tmpIdx = 0
 	cnt = 0
@@ -141,7 +141,7 @@ def autoDrive(*args):
 	global cnt_msg
 
 	ttc_min = 5
-	dis_min = 8
+	dis_min = 20
 	ttcRadar = ttcRadar_msg()
 	state_key = []
 	state_description = []
@@ -151,7 +151,7 @@ def autoDrive(*args):
 	if len(posObj) == 0:
 		ttcRadar.isObject = False
 		state_description.append('no obstacle')
-		speed = rospy.get_param("~speed", 2.0)
+		speed = rospy.get_param("~speed", 2)
 		turn = rospy.get_param("~turn", 30)
 		state_key.append("i")		
 
@@ -160,7 +160,7 @@ def autoDrive(*args):
 		for i, pos in enumerate(posObj):
 
 			#  duty is the period of deceleration between 2 consecutive times. it changes depending on the object distance.
-			duty = round(disObj[i]/1.5)
+			duty = round(disObj[i]/0.72)
 			if duty < 1:
 				duty = 1
 
@@ -169,6 +169,7 @@ def autoDrive(*args):
 				if disObj[i] < dis_min:
 					state_key.append("x") if (cnt_msg == (cnt_msg//duty)*duty) else state_key.append("i")
 				else:
+					speed = 2
 					state_key.append("i")
 
 			elif pos <= regions['right']:
@@ -253,8 +254,8 @@ def autoDrive(*args):
 			z = 0
 			th = 0
 
-		if abs(speed) > 10:
-			speed = 10
+		if abs(speed) > 2:
+			speed = 2
 		if abs(turn) > 80:
 			turn = 80
 
@@ -274,9 +275,15 @@ def autoDrive(*args):
 		ttcRadar.dis = disObj
 		ttcRadar.vel= [vel_carsim, vel_carsim]
 		ttcRadar.ttc = ttc
+		ttcRadar.ttcSpeed = twist.linear.x
+		ttcRadar.ttcSteering = twist.angular.z
+		ttcRadar.ttcKey = key
 		ttcRadar.msg_counter = cnt_msg
 
 		pubRadar.publish(ttcRadar)
+
+		print(disObj, ttc,ttcRadar.vel, ttcRadar.ttcSpeed,ttcRadar.ttcKey)
+		
 
 	except Exception as e:
 		print(e)
@@ -306,7 +313,7 @@ def main():
 	rospy.init_node('reading_laser')
 
 	pubTTC = rospy.Publisher('/carsim1/cmd_vel', Twist, queue_size = 1)
-        pubRadar = rospy.Publisher('Radar_Data', ttcRadar_msg, queue_size = 1)
+	pubRadar = rospy.Publisher('Radar_Data', ttcRadar_msg, queue_size = 1)
 
 	subTTC = rospy.Subscriber('/carsim1/laser/scan', LaserScan, laserTTCCallback)
 	velTTC = rospy.Subscriber('carsimTTC/joint_states', JointState, jointStateTTCCallback)
